@@ -1,8 +1,10 @@
 import React from 'react';
 
-import {Switch, HashRouter, Route, Router, HashHistory, Link} from "react-router-dom";
+import {Switch, HashRouter, Route, } from "react-router-dom";
 //引用组件
+import PrivateRouter from "./components/private/index";
 import Login from "./views/Login/Index";
+import Index from "./views/Index/Index";
 //引入样式
 // function App() {
 //   return (
@@ -38,7 +40,8 @@ class App extends React.Component {
              
         <HashRouter>
           <Switch>
-            <Route exact component={Login} path="/"/>            
+            <Route exact component={Login} path="/"/>
+            <PrivateRouter  component={Index} path="/index"/>            
           </Switch>
         </HashRouter>
       </div>

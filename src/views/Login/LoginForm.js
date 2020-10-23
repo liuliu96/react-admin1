@@ -1,23 +1,27 @@
 import React, {Component, Fragment} from 'react';
 import { Form, Input, Button, Checkbox, Row, Col } from 'antd';
-import { UserOutlined, LockOutlined, KeyOutlined } from '@ant-design/icons';
+import { UserOutlined, LockOutlined, KeyOutlined,  } from '@ant-design/icons';
+import {withRouter} from 'react-router-dom';
+//样式
 import './Index.scss';
-import {validatePassword} from '../../utils/validate';
-
+//验证
+import {validatePassword,validate_email} from '../../utils/validate';
+//组件
+import Code from '../../components/code/index';
+//方法
+import {setToken, setUsername} from '../../utils/cookies';
 //导入API
-import {Login} from '../../api/account'
-const onFinish = (values) => {
-    Login().then(response=>{
-        console.log(response)
-    }).catch(error=>{
-        console.log(error)
-    })
-    console.log('Received values of form: ', values);
-  };
+import {Login} from '../../api/account';
+//加密
+import Cryptojs from "crypto-js";
+
 class LoginForm extends Component {
     constructor(props){
       super(props)
       this.state={
+          username:'',
+          module: "login",
+          loading: false    
   
       }
      
@@ -25,7 +29,58 @@ class LoginForm extends Component {
     toggleForm=()=>{
         this.props.switchForm('register')    
     }
+     //登录
+    onFinish = (values) => {
+        const loginData={
+            username: this.state.username,
+            password: Cryptojs.MD5(this.state.password).toString(),
+            code: this.state.code
+        }
+        this.setState({
+            loading: true
+        })
+    Login(loginData).then(response=>{
+        console.log(response)
+        this.setState({
+            loading: false
+        })
+        
+        const data=response.data.data
+        //存储token
+        setToken(data.token)
+        setUsername(data.username)
+      
+        this.props.history.push('index')
+    }).catch(error=>{
+        console.log(error)
+        this.setState({
+            loading: false
+        })
+    })   
+  };
+  inputChange_password=(e)=>{
+    let value=e.currentTarget.value
+    this.setState({           
+        password: value
+     })
+  }
+    inputChange_code=(e)=>{
+        let value=e.currentTarget.value
+        this.setState({           
+            code: value
+        })
+    }
+  
+    //input输入
+    inputChange=(e)=>{
+        let value=e.currentTarget.value
+        this.setState({           
+            username: value
+        })
+          }
     render(){
+        const {username, module, loading}=this.state
+        const _this=this
       return (
         <Fragment >
             <div className="login1">
@@ -41,7 +96,7 @@ class LoginForm extends Component {
                         initialValues={{
                             remember: true,
                         }}
-                        onFinish={onFinish}
+                        onFinish={this.onFinish}
                         >
                         <Form.Item
                             name="username"
@@ -50,13 +105,34 @@ class LoginForm extends Component {
                                 required: true,
                                 message: 'Please input your email!',
                             },
-                            {
-                                type: "email",
-                                message: "邮箱格式不正确"
-                            }
+                            // {
+                            //     type: "email",
+                            //     message: "邮箱格式不正确"
+                            // }
+                             ({getFieldValue}) => ({
+                               
+                               
+                                validator(rule, value) {
+                                   
+                                  if (validate_email(value)) {
+                                    _this.setState({
+                                          codeButtonDisabled:false
+                                      })
+                                    return Promise.resolve("验证通过");                                    
+                                    
+                                  }
+                                  return Promise.reject('邮箱格式不正确');                  
+                                  
+                                },
+                              }),
                             ]}
                         >
-                            <Input prefix={<UserOutlined className="site-form-item-icon" />} placeholder="Username" />
+                            <Input  onChange={this.inputChange}
+                            value={username} 
+                                                    
+                            prefix={<UserOutlined 
+                            className="site-form-item-icon" />} 
+                            placeholder="Username" />
                         </Form.Item>
                         <Form.Item
                             name="password"
@@ -90,7 +166,12 @@ class LoginForm extends Component {
                             // },
                             ]}
                         >
-                            <Input prefix={<KeyOutlined className="site-form-item-icon" />} placeholder="password" />
+                            <Input 
+                            onChange={this.inputChange_password}
+                             type='password'
+                            prefix={<KeyOutlined 
+                            className="site-form-item-icon" />} 
+                            placeholder="password" />
                         </Form.Item>
                         <Form.Item
                             name="code"
@@ -108,10 +189,14 @@ class LoginForm extends Component {
                         >
                         <Row gutter={13}>
                             <Col span={16}>
-                            <Input prefix={<LockOutlined className="site-form-item-icon" />} placeholder="验证码" />
-                            </Col>
+                            <Input 
+                            onChange={this.inputChange_code}
+                            prefix={<LockOutlined 
+                            className="site-form-item-icon" />} 
+                            placeholder="验证码" />
+                            </Col >
                             <Col span={8}>
-                                <Button type="danger">获取验证码</Button>
+                                <Code username={this.state.username} module={module}/>
                             </Col>
                         </Row>    
                         </Form.Item>
@@ -121,9 +206,7 @@ class LoginForm extends Component {
                             <Checkbox>Remember me</Checkbox>
                             </Form.Item>
 
-                            <a className="login-form-forgot" href="">
-                            Forgot password
-                            </a>
+                           
                         </Form.Item>
 
                         <Form.Item>
@@ -132,6 +215,7 @@ class LoginForm extends Component {
                             htmlType="submit" 
                             className="login-form-button"
                             block
+                            loading={loading}
                             >
                             登录
                             </Button>                           
@@ -145,4 +229,4 @@ class LoginForm extends Component {
           );
     }
   }
-  export default LoginForm;
+  export default withRouter(LoginForm) ;
